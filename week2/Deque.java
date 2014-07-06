@@ -3,17 +3,31 @@ package week2;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import edu.princeton.cs.algs4.ResizingArrayStack;
 import edu.princeton.cs.introcs.StdIn;
 import edu.princeton.cs.introcs.StdOut;
 
+/**	need to implement double-linked list	**/
 public class Deque<Item> implements Iterable<Item> {
-	private ResizingArrayStack<Item> q;
-	private int N; // array size
+	private int N;	// size of stack
+	private Node first, end;	// top of stack and end of stack
 
+    // helper linked list class
+    private class Node {
+        private Item item;
+        private Node next;
+        private Node previous;
+        private Node(Item item, Node previous, Node next) {
+        	this.item = item;
+        	this.previous = previous;
+        	this.next = next;
+        }
+    }
+    
 	// construct an empty deque
 	public Deque() {
-		q = new ResizingArrayStack<Item>();	// q = (Item[]) new Object[2];
+		this.first = null;
+		this.end = null;
+		this.N = 0;
 	}   
 	
 	// is the deque empty?
@@ -30,12 +44,17 @@ public class Deque<Item> implements Iterable<Item> {
 	public void addFirst(Item item) {
 		if (item == null) throw new NullPointerException();
 		else {
-			ResizingArrayStack<Item> addFirstS = new ResizingArrayStack<Item>();
-			for (int i = 0; i < N; i++) addFirstS.push(q.pop()); // push to the last, pop the last
-			addFirstS.push(item);
-			for (int i = 0; i < (N + 1); i++) q.push(addFirstS.pop());
-			N++;
-			addFirstS = null;
+	        Node oldfirst = first;
+	        first = new Node(item, null, oldfirst);
+	        
+	        if (isEmpty()) {
+	        	end = first;
+	        }
+	        else {
+		        oldfirst.previous = first;
+	        }
+	        
+	        N++;
 		}
 	}
 	         
@@ -44,31 +63,55 @@ public class Deque<Item> implements Iterable<Item> {
 	public void addLast(Item item) {
 		if (item == null) throw new NullPointerException();
 		else {
+			Node oldend = end;
+			end = new Node(item, oldend, null);
+			
+	        
+	        if (isEmpty()) {
+	        	first = end;
+	        }
+	        else {
+	        	oldend.next = end;
+	        }
+			
 			N++;
-			q.push(item);
 			}
 	}     
 	
 	// delete and return the item at the front
 	public Item removeFirst() {
-		if (q.size() == 0) throw new java.util.NoSuchElementException();
+		if (isEmpty()) throw new java.util.NoSuchElementException();
 		else {
-			ResizingArrayStack<Item> removeLastS = new ResizingArrayStack<Item>();
-			for (int i = 0; i < N; i++) removeLastS.push(q.pop());
-			Item item = removeLastS.pop();
-			for (int i = 0; i < (N - 1); i++) q.push(removeLastS.pop());
-			N--;
-			removeLastS = null;
-			return item;
+	        Item item = first.item;        // save item to return
+	        first = first.next;            // delete first node
+	        
+	        if (first != null) {
+	        	first.previous = null;
+	        }
+	        N--;
+	        if (isEmpty()) {
+	        	end = null;
+	        }
+	        return item;                   // return the saved item
 		}
 	}
 	
 	// delete and return the item at the end
 	public Item removeLast() {
-		if (q.size() == 0) throw new java.util.NoSuchElementException();
+		if (isEmpty()) throw new java.util.NoSuchElementException();
 		else {
+			Item item = end.item;
+			end = end.previous;
+			
+			if (end != null) {
+				end.next = null;
+			}
 			N--;
-			return q.pop();
+			
+			if (isEmpty()) {
+				first = null;
+			}
+			return item;
 		}
 	}   
 	
@@ -79,32 +122,14 @@ public class Deque<Item> implements Iterable<Item> {
 
     // an iterator, doesn't implement remove() since it's optional
     private class DequeIterator implements Iterator<Item> {
-        private int i;
+        private Node current = first;
+        public boolean hasNext()  { return current != null;                     }
+        public void remove()      { throw new UnsupportedOperationException();  }
 
-        public DequeIterator() {
-        	i = N;
-        }
-        public boolean hasNext() {
-        	return i > 0;
-        }
-
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-
-        @SuppressWarnings("unchecked")
-		public Item next() {
+        public Item next() {
             if (!hasNext()) throw new NoSuchElementException();
-            ResizingArrayStack<String> nextS = new ResizingArrayStack<>();
-            for (int j = i; j < N; j++) {
-            	nextS.push((String) q.pop());
-            }
-            Item item = q.peek();
-            for (int j = i; j < N; j++) {
-            	q.push((Item) nextS.pop());
-            }
-            --i;
-            nextS = null;
+            Item item = current.item;
+            current = current.next; 
             return item;
         }
         
