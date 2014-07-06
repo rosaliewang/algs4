@@ -8,21 +8,16 @@ import edu.princeton.cs.introcs.StdIn;
 import edu.princeton.cs.introcs.StdOut;
 import edu.princeton.cs.introcs.StdRandom;
 
+
 /**	stack: LIFO, push to the last, pop the lase
  * 	queue: FIFO, push to the last, pop the first**/
 public class RandomizedQueue<Item> implements Iterable<Item> {
     private int N;          // size of the stack
-    private LinkedStack<Item> s;
-
-    private class Node {
-        private Item item;
-        private Node next;
-    }
+    private Item[] a;         // array of items
     
 	// construct an empty randomized queue
 	public RandomizedQueue() {
-		s = new LinkedStack<Item>();
-		
+		a = (Item[]) new Object[2];
 	}  
 	
 	// is the queue empty?
@@ -39,37 +34,50 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
 	public void enqueue(Item item) {
 		if (item == null) throw new NullPointerException();
 		else {
-			s.push(item);
-			N++;
+			if (N == a.length) resize(2*a.length);    // double size of array if necessary
+	        a[N++] = item;                            // add item
 		}
 	} 
 	
 	// delete and return a random item
 	public Item dequeue() {
-		if (s.size() == 0) throw new java.util.NoSuchElementException();
+		if (isEmpty()) throw new java.util.NoSuchElementException();
 		else {
-			LinkedStack<Item> dequeueS = new LinkedStack<Item>();
 			int index = StdRandom.uniform(0, N);
-			for (int i = 0; i < index; i++) dequeueS.push(s.pop());
-			Item item = s.pop();
-			for (int i = 0; i < index; i++) s.push(dequeueS.pop());
-			dequeueS = null;
-			N--;
-			return item;
+			Item item = a[index];
+			
+			if (index != N - 1) {
+	            a[index] = a[N - 1];
+	        }
+			
+	        a[N-1] = null;                              // to avoid loitering
+	        N--;
+	        // shrink size of array if necessary
+	        if (N > 0 && N == a.length/4) resize(a.length/2);
+	        return item;
 		}
 	}      
 	
 	// return (but do not delete) a random item
 	public Item sample() {
-		LinkedStack<Item> dequeueS = new LinkedStack<Item>();
-		int index = StdRandom.uniform(0, N);
-		for (int i = 0; i < index; i++) dequeueS.push(s.pop());
-		Item item = s.peek();
-		for (int i = 0; i < index; i++) s.push(dequeueS.pop());
-		dequeueS = null;
-		return item;
+		if (isEmpty()) throw new java.util.NoSuchElementException();
+		else {
+			int index = StdRandom.uniform(0, N);
+			Item item = a[index];
+			return item;
+		}
 	}        
 	
+    // resize the underlying array holding the elements
+    private void resize(int capacity) {
+        assert capacity >= N;
+        Item[] temp = (Item[]) new Object[capacity];
+        for (int i = 0; i < N; i++) {
+            temp[i] = a[i];
+        }
+        a = temp;
+    }
+    
 	// return an independent iterator over items in random order
 	public Iterator<Item> iterator() {
 		return new RandomizedQueueIterator();
@@ -77,16 +85,23 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
 	
     // an iterator, doesn't implement remove() since it's optional
     private class RandomizedQueueIterator implements Iterator<Item> {
-    	@SuppressWarnings("unchecked")
-		private Node current = (Node) s.peek();
-        public boolean hasNext()  { return N != 0;                     }
-        public void remove()      { throw new UnsupportedOperationException();  }
+        private int i;
+
+        public RandomizedQueueIterator() {
+            i = N;
+        }
+
+        public boolean hasNext() {
+            return i > 0;
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
 
         public Item next() {
             if (!hasNext()) throw new NoSuchElementException();
-            Item item = current.item;
-            current = current.next; 
-            return item;
+            return a[--i];
         }
     }
     
